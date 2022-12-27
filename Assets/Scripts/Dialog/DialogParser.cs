@@ -7,7 +7,9 @@ public class DialogParser : MonoBehaviour
     public Dialog[] Parse(string _CSVFileName)
     {
         List<Dialog> dialogList = new List<Dialog>();                   // 대사 리스트
-        TextAsset csvData = Resources.Load<TextAsset>(_CSVFileName);    // csv 파일 가져옴
+
+        string csvPath = "Story/" + _CSVFileName;
+        TextAsset csvData = Resources.Load<TextAsset>(csvPath);    // csv 파일 가져옴
 
         string[] data = csvData.text.Split('\n');
         
@@ -18,11 +20,12 @@ public class DialogParser : MonoBehaviour
             Dialog dialog = new Dialog();
             dialog.name = row[1];
             dialog.state = row[2];
+            dialog.changeLocate = row[3];
         
             List<string> contextList = new List<string>();
             do
             {
-                contextList.Add(row[3]);
+                contextList.Add(row[4]);
                 if (++i < data.Length)
                     row = data[i].Split(',');
                 else

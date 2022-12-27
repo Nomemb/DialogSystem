@@ -8,6 +8,7 @@ public class DialogManager : MonoBehaviour
     [SerializeField] GameObject dialogBar;
     [SerializeField] GameObject dialogNameBar1;
     [SerializeField] GameObject dialogNameBar2;
+    [SerializeField] GameObject skipButton;
 
     [SerializeField] Image img_Cookie1;
     [SerializeField] Image img_Cookie2;
@@ -24,8 +25,10 @@ public class DialogManager : MonoBehaviour
     bool isDialog = false;              // 대화중일경우 false
     bool isNext = false;                // 키 입력 대기
 
-    public string currentName;         // 지금 말하는 캐릭터 이름
     bool isFirst = true;       // 첫번째인지 두번째인지
+
+    private string cookie1State;
+    private string cookie2State;
 
     [Header("텍스트 출력 딜레이")]
     [SerializeField]
@@ -38,9 +41,9 @@ public class DialogManager : MonoBehaviour
     private void Start()
     {
         ShowDialog(this.transform.GetComponent<InteractionEvent>().GetDialog());
-        SettingDialog();
+        ReverseCookie2Image();
+        SettingDialog(1);
     }
-
 
     private void Update()
     {
@@ -82,13 +85,12 @@ public class DialogManager : MonoBehaviour
         txt_Cookie2.text = "";
         img_Cookie1.enabled = false;
         img_Cookie2.enabled = false;
-        currentName = "";
 
         dialogs = p_dialogs;
 
         StartCoroutine(TypeWriter());
     }
-    void EndDialog()
+    public void EndDialog()
     {
         isDialog = false;
         contextCount = 0;
@@ -104,25 +106,35 @@ public class DialogManager : MonoBehaviour
         string t_ReplaceText = dialogs[lineCount].contexts[contextCount];
         t_ReplaceText = t_ReplaceText.Replace("'", ",");
         string _currentName = dialogs[lineCount].name;
-        SettingUI(true, isFirst);
+        string _currentState = dialogs[lineCount].state;
+        string _changeLocate = dialogs[lineCount].changeLocate;
+
+        if (_changeLocate == "1")
+        {
+            Debug.Log(_changeLocate);
+            SettingDialog(lineCount);
+            isFirst = true;
+            SettingUI(true, isFirst, true);
+        }
+        else
+            SettingUI(true, isFirst);
 
         if(isFirst)
         {
-            if(txt_Cookie1.text != _currentName)
+            if(txt_Cookie1.text != _currentName || cookie1State != _currentState)
             {
                 txt_Cookie1.text = _currentName;
+                cookie1State = _currentState;
                 ChangeImage(isFirst);
-                Debug.Log("Change Cookie1 Image");
             }
         }
         else
         {
-            if (txt_Cookie2.text != _currentName)
+            if (txt_Cookie2.text != _currentName || cookie2State != _currentState)
             {
                 txt_Cookie2.text = _currentName;
+                cookie2State = _currentState;
                 ChangeImage(isFirst);
-                Debug.Log("Change Cookie2 Image");
-
             }
         }
 
@@ -136,19 +148,27 @@ public class DialogManager : MonoBehaviour
         }
         isNext = true;
     }
-
-    void SettingDialog()
+    void ReverseCookie2Image()
     {
-        txt_Cookie1.text = dialogs[0].name;
-        txt_Cookie2.text = dialogs[1].name;
+        Vector3 scale = img_Cookie2.transform.localScale;           // 2p 이미지 뒤집기
+        scale.x = -Mathf.Abs(scale.x);
+        img_Cookie2.transform.localScale = scale;
+    }
+    void SettingDialog(int p_lineNo)
+    {
+        txt_Cookie1.text = dialogs[p_lineNo - 1].name;
+        txt_Cookie2.text = dialogs[p_lineNo].name;
+        cookie1State = dialogs[p_lineNo - 1].state;
+        cookie2State = dialogs[p_lineNo].state;
+
         string cookie1Path = "Image/" + txt_Cookie1.text;
         string cookie2Path = "Image/" + txt_Cookie2.text;
 
         cookie1Images = Resources.LoadAll<Sprite>(cookie1Path);
         cookie2Images = Resources.LoadAll<Sprite>(cookie2Path);
 
-        img_Cookie1.sprite = cookie1Images[0];
-        img_Cookie2.sprite = cookie2Images[0];
+        ChangeCookieImage(img_Cookie1);
+        ChangeCookieImage(img_Cookie2);
 
         img_Cookie1.enabled = true;
         img_Cookie2.enabled = true;
@@ -159,18 +179,48 @@ public class DialogManager : MonoBehaviour
         {
             string cookie1Path = "Image/" + txt_Cookie1.text;
             cookie1Images = Resources.LoadAll<Sprite>(cookie1Path);
-            img_Cookie1.sprite = cookie1Images[0];
+            ChangeCookieImage(img_Cookie1);
         }
         else
         {
             string cookie2Path = "Image/" + txt_Cookie2.text;
             cookie2Images = Resources.LoadAll<Sprite>(cookie2Path);
-            img_Cookie2.sprite = cookie2Images[0];
+            ChangeCookieImage(img_Cookie2);
         }
     }
-    void SettingUI(bool p_flag, bool p_isFirst = true)
+
+    void ChangeCookieImage(Image p_Cookie)
+    {
+        if(p_Cookie == img_Cookie1)
+        {
+            Debug.Log(1);
+            foreach(Sprite i in cookie1Images)
+            {
+                if (i.name == cookie1State)
+                {
+                    img_Cookie1.sprite = i;
+                    return;
+                }
+            }
+        }
+        else
+        {
+            Debug.Log(2);
+            foreach (Sprite i in cookie2Images)
+            {
+                if (i.name == cookie2State)
+                {
+                    img_Cookie2.sprite = i;
+                    return;
+                }
+            }
+        }
+    }
+    void SettingUI(bool p_flag, bool p_isFirst = true, bool p_hideCookie2 = false)
     {
         dialogBar.SetActive(p_flag);
+        skipButton.SetActive(p_flag);
+
         if (!p_flag)
         {
             dialogBar.SetActive(p_flag);
@@ -183,10 +233,15 @@ public class DialogManager : MonoBehaviour
         if (p_isFirst)                                          // 첫번째
         {
             dialogNameBar1.SetActive(p_flag);
+            if (p_hideCookie2)
+                img_Cookie2.enabled = false;
+            else
+                img_Cookie2.enabled = true;
             dialogNameBar2.SetActive(!p_flag);
         }
         else
         {
+            img_Cookie2.enabled = true;
             dialogNameBar1.SetActive(!p_flag);
             dialogNameBar2.SetActive(p_flag);
         }
